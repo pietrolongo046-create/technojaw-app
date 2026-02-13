@@ -1,6 +1,6 @@
 {
   "name": "technojaw-app",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "TechnoJaw - Online Self Shine (Desktop App)",
   "main": "electron/main.js",
   "scripts": {

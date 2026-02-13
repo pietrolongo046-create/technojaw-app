@@ -5,6 +5,9 @@ on:
   repository_dispatch:
     types: [site-updated]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-latest

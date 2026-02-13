@@ -68,7 +68,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
-        run: npx electron-builder --mac zip --arm64 --publish always -c.generateBlockmap=false
+        run: npx electron-builder --mac zip --arm64 --publish always
 
       - name: Publish release
         env:

@@ -25,7 +25,6 @@
       }
     ],
     "asar": true,
-    "compression": "store",
     "files": [
       "electron/**/*",
       "assets/**/*"

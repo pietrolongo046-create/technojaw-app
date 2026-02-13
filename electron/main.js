@@ -14,7 +14,7 @@ const DIST_PATH = isDev
   : path.join(process.resourcesPath, 'dist');
 
 const LOCAL_INDEX = path.join(DIST_PATH, 'index.html');
-const LOCAL_URL = 'app://technojaw/index.html';
+const LOCAL_URL = 'app://technojaw/';
 
 // Registra lo schema custom PRIMA di app.whenReady
 protocol.registerSchemesAsPrivileged([{

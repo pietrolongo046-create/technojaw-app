@@ -27,6 +27,18 @@ jobs:
         with:
           node-version: 20
 
+      - name: Cache site dependencies
+        uses: actions/cache@v4
+        with:
+          path: site/node_modules
+          key: site-deps-${{ hashFiles('site/package-lock.json') }}
+
+      - name: Cache app dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: app-deps-${{ hashFiles('package-lock.json') }}
+
       - name: Install & build site
         working-directory: site
         run: |
@@ -55,12 +67,8 @@ jobs:
       - name: Build ZIP (arm64) & publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --mac zip --arm64 --publish always
-
-      - name: Build ZIP (x64) & publish
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --mac zip --x64 --publish always
+          ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
+        run: npx electron-builder --mac zip --arm64 --publish always -c.generateBlockmap=false
 
       - name: Publish release
         env:

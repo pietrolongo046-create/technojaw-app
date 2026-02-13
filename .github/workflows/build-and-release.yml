@@ -49,13 +49,15 @@ jobs:
             console.log('New version: ' + p.version);
           "
 
-      - name: Build ZIP only (for auto-update) & publish
+      - name: Build ZIP (arm64) & publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx electron-builder --mac \
-            --config.mac.target="[{\"target\":\"zip\",\"arch\":[\"arm64\"]},{\"target\":\"zip\",\"arch\":[\"x64\"]}]" \
-            --publish always
+        run: npx electron-builder --mac zip --arm64 --publish always
+
+      - name: Build ZIP (x64) & publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --mac zip --x64 --publish always
 
       - name: Publish release
         env:

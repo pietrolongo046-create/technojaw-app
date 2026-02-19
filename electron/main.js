@@ -1,8 +1,9 @@
-const { app, BrowserWindow, Menu, shell, ipcMain, protocol, net, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, protocol, net, dialog, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { autoUpdater } = require('electron-updater');
+const keychainService = require('./services/keychain');
 
 const isDev = !app.isPackaged;
 const LIVE_URL = 'https://technojaw.com';
@@ -40,6 +41,8 @@ function getT() {
   const locale = (app.getLocale() || 'en').substring(0, 2);
   return translations[locale] || translations.en;
 }
+
+const IS_MAC = process.platform === 'darwin';
 
 let mainWindow;
 
@@ -148,8 +151,9 @@ function createWindow() {
     height: 860,
     minWidth: 900,
     minHeight: 600,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 16 },
+    titleBarStyle: IS_MAC ? 'hiddenInset' : 'hidden',
+    ...(IS_MAC ? { trafficLightPosition: { x: 16, y: 16 } } : {}),
+    frame: IS_MAC,
     backgroundColor: '#ffffff',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -157,7 +161,17 @@ function createWindow() {
       contextIsolation: true,
     },
     icon: path.join(__dirname, '..', 'assets', 'technojaw-icon.png'),
-    show: true,
+    show: false,
+  });
+
+  mainWindow.once('ready-to-show', () => mainWindow.show());
+
+  // PRIVACY BLUR — oscura quando l'app perde il focus
+  mainWindow.on('blur', () => {
+    mainWindow.webContents.send('app-blur', true);
+  });
+  mainWindow.on('focus', () => {
+    // NON rimuovere lo shield al focus — resta visibile fino al click dell'utente
   });
 
   // Domains considerati "interni" per l'app
@@ -297,9 +311,88 @@ function createWindow() {
   // Reset fallback flag quando il caricamento riesce
   mainWindow.webContents.on('did-finish-load', () => {
     triedFallback = false;
+    // Inject window controls for Win/Linux (frameless)
+    if (!IS_MAC) {
+      mainWindow.webContents.executeJavaScript(`
+        (function() {
+          if (document.getElementById('tj-wc')) return;
+          const bar = document.createElement('div');
+          bar.id = 'tj-wc';
+          Object.assign(bar.style, {
+            position:'fixed', top:'0', right:'0', zIndex:'999999',
+            display:'flex', alignItems:'center',
+            WebkitAppRegion:'no-drag'
+          });
+          const mkBtn = (svg, cls, fn) => {
+            const b = document.createElement('button');
+            b.className = 'tj-wc-btn ' + (cls||'');
+            b.innerHTML = svg;
+            Object.assign(b.style, {
+              background:'none', border:'none', color:'#888',
+              width:'46px', height:'36px', display:'flex',
+              alignItems:'center', justifyContent:'center',
+              cursor:'pointer', transition:'background 0.15s, color 0.15s'
+            });
+            b.onmouseenter = () => {
+              if (cls === 'close') { b.style.background='#e81123'; b.style.color='#fff'; }
+              else { b.style.background='rgba(0,0,0,0.06)'; b.style.color='#333'; }
+            };
+            b.onmouseleave = () => { b.style.background='none'; b.style.color='#888'; };
+            b.onclick = fn;
+            return b;
+          };
+          bar.appendChild(mkBtn('<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>', '', () => window.electronAPI.windowMinimize()));
+          bar.appendChild(mkBtn('<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>', '', () => window.electronAPI.windowMaximize()));
+          bar.appendChild(mkBtn('<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>', 'close', () => window.electronAPI.windowClose()));
+          document.body.appendChild(bar);
+          // Make top area draggable
+          if (!document.getElementById('tj-drag')) {
+            const drag = document.createElement('div');
+            drag.id = 'tj-drag';
+            Object.assign(drag.style, {
+              position:'fixed', top:'0', left:'0', right:'138px', height:'36px',
+              zIndex:'999998', WebkitAppRegion:'drag'
+            });
+            document.body.appendChild(drag);
+          }
+        })();
+      `).catch(() => {});
+    }
+
+    // PRIVACY SHIELD — inietta overlay blur con click-to-dismiss
+    mainWindow.webContents.executeJavaScript(`
+      (function() {
+        if (document.getElementById('tj-privacy-shield')) return;
+        var shield = document.createElement('div');
+        shield.id = 'tj-privacy-shield';
+        Object.assign(shield.style, {
+          position:'fixed', inset:'0', zIndex:'999999',
+          background:'rgba(255,255,255,0.6)', backdropFilter:'blur(40px)', WebkitBackdropFilter:'blur(40px)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          transition:'opacity 0.3s', opacity:'0', pointerEvents:'none',
+          cursor:'pointer'
+        });
+        shield.innerHTML = '<div style="text-align:center;"><div style="width:80px;height:80px;border-radius:50%;background:rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;"><svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'32\\' height=\\'32\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'#333\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><rect width=\\'18\\' height=\\'11\\' x=\\'3\\' y=\\'11\\' rx=\\'2\\' ry=\\'2\\'/><path d=\\'M7 11V7a5 5 0 0 1 10 0v4\\'/></svg></div><h2 style="font-size:24px;font-weight:700;color:#333;margin:0;">Protetto</h2><p style="font-size:11px;color:rgba(0,0,0,0.4);margin-top:8px;">Clicca per sbloccare</p></div>';
+        shield.addEventListener('click', function() {
+          shield.style.opacity = '0';
+          shield.style.pointerEvents = 'none';
+        });
+        document.body.appendChild(shield);
+        if (window.electronAPI && window.electronAPI.onBlur) {
+          window.electronAPI.onBlur(function(val) {
+            if (val) {
+              shield.style.opacity = '1';
+              shield.style.pointerEvents = 'auto';
+            }
+            // Non rimuovere al focus — il click gestisce il dismiss
+          });
+        }
+      })();
+    `).catch(() => {});
   });
 
   mainWindow.on('closed', () => {
+    clipboard.clear();
     mainWindow = null;
   });
 }
@@ -320,6 +413,15 @@ ipcMain.on('go-back', () => {
 ipcMain.on('check-for-updates', () => {
   if (!isDev) autoUpdater.checkForUpdates().catch(() => {});
 });
+
+// Window controls (frameless Win/Linux)
+ipcMain.on('window-minimize', () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize(); });
+ipcMain.on('window-maximize', () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
+});
+ipcMain.on('window-close', () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close(); });
+ipcMain.handle('get-is-mac', () => IS_MAC);
 
 // ===== App Menu (multilingua automatico) =====
 function createMenu() {
@@ -379,6 +481,11 @@ function createMenu() {
 }
 
 app.whenReady().then(() => {
+  // HANDLER PER LA CHIAVE SICURA (Keytar)
+  ipcMain.handle('get-secure-key', async () => {
+    return await keychainService.getEncryptionKey();
+  });
+
   // Registra protocollo custom app:// per servire i file locali della dist
   if (!isDev) {
     protocol.handle('app', (request) => {

@@ -1,6 +1,32 @@
+# ═══════════════════════════════════════
+# TechnoJaw App — .gitignore (Tauri v2)
+# ═══════════════════════════════════════
+
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
+src-tauri/target/
+releases/*.dmg
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env & logs
+.env
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+client/node_modules/
+client/dist/
+web-dist/
 release/
-*.dmg
 *.exe
 *.blockmap
+.env.local
+electron/

@@ -1,0 +1,24 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "TechnoJaw",
+  "version": "1.3.8",
+  "identifier": "com.pietrolongo.technojaw",
+  "build": {
+    "frontendDist": "../client/dist",
+    "devUrl": "http://localhost:5173",
+  "beforeDevCommand": "echo \"no client: skipping frontend dev command\"",
+  "beforeBuildCommand": "echo \"no client: skipping frontend build command\""
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app"],
+    "icon": ["icons/32x32.png","icons/128x128.png","icons/icon.icns","icons/icon.ico"],
+    "category": "Utilities"
+  },
+  "plugins": {}
+}
+

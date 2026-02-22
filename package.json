@@ -2,17 +2,20 @@
   "name": "technojaw-app",
   "version": "1.3.8",
   "description": "TechnoJaw - Online Self Shine (Desktop App)",
-  "main": "electron/main.js",
   "scripts": {
-    "dev": "electron .",
-    "build-site": "cd \"../TechnoJaw\" && npm run build && rm -rf \"../TechnoJaw App/dist\" && cp -R dist \"../TechnoJaw App/dist\"",
-    "dist": "npm run build-site && node -e \"const p=require('./package.json');const v=p.version.split('.');v[2]=+v[2]+1;if(+v[2]>=10){v[1]=+v[1]+1;v[2]=0;}p.version=v.join('.');require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2)+'\\n');console.log('v'+p.version)\" && electron-builder --mac && npm run install-app",
-    "dist:mac": "npm run build-site && node -e \"const p=require('./package.json');const v=p.version.split('.');v[2]=+v[2]+1;if(+v[2]>=10){v[1]=+v[1]+1;v[2]=0;}p.version=v.join('.');require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2)+'\\n');console.log('v'+p.version)\" && electron-builder --mac && npm run install-app",
-    "dist:win": "npm run build-site && electron-builder --win && npm run copy-win",
-    "install-app": "VER=$(node -p \"require('./package.json').version\") && APP=$(ls -d release/mac-arm64/*.app 2>/dev/null || ls -d release/mac/*.app 2>/dev/null) && rm -rf ~/Desktop/TechnoJaw.app && ditto \"$APP\" ~/Desktop/TechnoJaw.app && codesign --force --deep --sign - ~/Desktop/TechnoJaw.app 2>/dev/null; xattr -cr ~/Desktop/TechnoJaw.app; mkdir -p ~/Desktop/\"Le Mie App\"/TechnoJaw && rm -f ~/Desktop/\"Le Mie App\"/TechnoJaw/*.dmg ~/Desktop/\"Le Mie App\"/TechnoJaw/*.exe && for f in release/TechnoJaw-*-arm64.dmg; do cp \"$f\" ~/Desktop/\"Le Mie App\"/TechnoJaw/TechnoJaw_${VER}_arm64.dmg 2>/dev/null; done; for f in release/TechnoJaw-*.dmg; do echo \"$f\" | grep -q arm64 || cp \"$f\" ~/Desktop/\"Le Mie App\"/TechnoJaw/TechnoJaw_${VER}_x64.dmg 2>/dev/null; done; rm -rf release/mac-arm64 release/mac; killall Dock 2>/dev/null; true",
-    "copy-win": "VER=$(node -p \"require('./package.json').version\") && mkdir -p ~/Desktop/\"Le Mie App\"/TechnoJaw && rm -f ~/Desktop/\"Le Mie App\"/TechnoJaw/*.exe && for f in release/\"TechnoJaw Setup\"*.exe; do cp \"$f\" ~/Desktop/\"Le Mie App\"/TechnoJaw/TechnoJaw_${VER}.exe 2>/dev/null; done; true",
-    "release": "npm run build-site && node -e \"const p=require('./package.json');const v=p.version.split('.');v[2]=+v[2]+1;if(+v[2]>=10){v[1]=+v[1]+1;v[2]=0;}p.version=v.join('.');require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2)+'\\n');console.log('v'+p.version)\" && electron-builder --mac --publish always && npm run install-app",
-    "start": "electron ."
+    "dev": "npx @tauri-apps/cli dev",
+    "build": "npx @tauri-apps/cli build --bundles app",
+    "build:dmg": "npx @tauri-apps/cli build --bundles dmg",
+    "build:all": "npx @tauri-apps/cli build",
+    "build:mac-arm": "npx @tauri-apps/cli build --target aarch64-apple-darwin --bundles app",
+    "build:mac-intel": "npx @tauri-apps/cli build --target x86_64-apple-darwin --bundles app",
+    "build:win": "npx @tauri-apps/cli build --target x86_64-pc-windows-msvc",
+    "build:ios": "npx @tauri-apps/cli ios build",
+    "build:android": "npx @tauri-apps/cli android build",
+    "deploy:desktop": "echo \"Implement deploy:desktop workflow (see BUILD_MASTER.md)\"",
+    "deploy:releases": "echo \"Implement deploy:releases workflow (see BUILD_MASTER.md)\"",
+    "install": "npm run build && npm run deploy:desktop",
+    "icons": "python3 scripts/generate-icons.py"
   },
   "build": {
     "appId": "com.technojaw.app",
@@ -26,7 +29,6 @@
     ],
     "asar": true,
     "files": [
-      "electron/**/*",
       "assets/**/*"
     ],
     "extraResources": [
@@ -70,12 +72,10 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.10.0",
-    "electron": "^33.4.0",
-    "electron-builder": "^26.0.12",
     "vite": "^7.3.1"
   },
   "dependencies": {
-    "electron-updater": "^6.7.3",
-    "keytar": "^7.9.0"
+    "keytar": "^7.9.0",
+    "@tauri-apps/api": "^2.10.0"
   }
 }

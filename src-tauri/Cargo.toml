@@ -1,0 +1,10 @@
+[package]
+name = "technojaw_tauri"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tauri = { version = "2.10.0", features = ["macos-private-api"] }
+
+[build-dependencies]
+tauri-build = { version = "2.5.5", features = [] }
